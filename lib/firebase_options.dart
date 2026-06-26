@@ -8,17 +8,16 @@ class DefaultFirebaseOptions {
       return android;
     }
     throw UnsupportedError(
-      'DefaultFirebaseOptions belum dikonfigurasi untuk platform ini. '
-      'Jalankan flutterfire configure untuk generate ulang file ini.',
+      'DefaultFirebaseOptions belum dikonfigurasi untuk platform ini.',
     );
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'GANTI_DENGAN_API_KEY_ASLI',
-    appId: 'GANTI_DENGAN_APP_ID_ASLI',
-    messagingSenderId: 'GANTI_DENGAN_SENDER_ID_ASLI',
-    projectId: 'GANTI_DENGAN_PROJECT_ID_ASLI',
-    databaseURL: 'https://GANTI-PROJECT-ID-default-rtdb.asia-southeast1.firebasedatabase.app',
-    storageBucket: 'GANTI_DENGAN_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyBMCdPkuxBzhqr7rFFswTCpqF9_eVTdCeE',
+    appId: '1:944158777706:android:535e7f1071396cb5bd8513',
+    messagingSenderId: '944158777706',
+    projectId: 'fortlock',
+    databaseURL: 'https://fortlock-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'fortlock.firebasestorage.app',
   );
 }
