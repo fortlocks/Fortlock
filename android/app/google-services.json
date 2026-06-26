@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "944158777706",
+    "firebase_url": "https://fortlock-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "fortlock",
+    "storage_bucket": "fortlock.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:944158777706:android:535e7f1071396cb5bd8513",
+        "android_client_info": {
+          "package_name": "com.example.fortlock"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBMCdPkuxBzhqr7rFFswTCpqF9_eVTdCeE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
