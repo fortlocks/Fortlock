@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../services/auth_service.dart';
@@ -32,7 +34,7 @@ class _SplashScreenState extends State<SplashScreen> {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const SetupOwnerScreen()),
+        MaterialPageRoute(builder: (_) => SetupOwnerScreen()),
       );
       return;
     }
@@ -101,3 +103,4 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 }
+
