@@ -47,15 +47,16 @@ class MqttService {
     _client!.onDisconnected = _onDisconnected;
     _client!.logging(on: false);
 
-    final connMess = MqttConnectMessage()
+final connMess = MqttConnectMessage()
         .withClientIdentifier(clientId)
-        .authenticateAs(username, password)
         .startClean()
         .withWillQos(MqttQos.atLeastOnce);
     _client!.connectionMessage = connMess;
 
+
     try {
-await _client!.connect().timeout(const Duration(seconds: 15));
+      await _client!.connect(username, password).timeout(const Duration(seconds: 15));
+    _client!.connectionMessage = connMess;
     } catch (e) {
       _connectionController.add(false);
       _errorController.add(e.toString());
