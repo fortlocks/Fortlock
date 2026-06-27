@@ -1,10 +1,15 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 
 class MqttService {
-  static const String broker = 'broker.hivemq.com';
-  static const int port = 1883;
+  static const String broker =
+      'd566266c1ba14ed2aa4c2b5b823596a2.s1.eu.hivemq.cloud';
+  static const int port = 8883;
+  static const String username = 'Fortlock';
+  static const String password = 'Fortlock1';
+
   static const String clientIdPrefix = 'fortlock_app_';
 
   static const String topicStatus = 'smart_home/status';
@@ -31,8 +36,9 @@ class MqttService {
   Future<void> connect() async {
     final clientId =
         '$clientIdPrefix${DateTime.now().millisecondsSinceEpoch}';
-    _client = MqttServerClient(broker, clientId);
-    _client!.port = port;
+    _client = MqttServerClient.withPort(broker, clientId, port);
+    _client!.secure = true;
+    _client!.securityContext = SecurityContext.defaultContext;
     _client!.keepAlivePeriod = 30;
     _client!.autoReconnect = true;
     _client!.onConnected = _onConnected;
@@ -41,6 +47,7 @@ class MqttService {
 
     final connMess = MqttConnectMessage()
         .withClientIdentifier(clientId)
+        .authenticateAs(username, password)
         .startClean()
         .withWillQos(MqttQos.atLeastOnce);
     _client!.connectionMessage = connMess;
