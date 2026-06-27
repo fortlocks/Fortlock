@@ -55,7 +55,7 @@ class MqttService {
     _client!.connectionMessage = connMess;
 
     try {
-      await _client!.connect();
+await _client!.connect().timeout(const Duration(seconds: 15));
     } catch (e) {
       _connectionController.add(false);
       _errorController.add(e.toString());
