@@ -22,6 +22,7 @@ class FortlockProvider extends ChangeNotifier {
   List<AppUser> userList = [];
   List<PhotoEvidence> evidenceList = [];
   bool mqttConnected = false;
+  String? mqttError;
 
   AppUser? currentUser;
 
@@ -37,6 +38,12 @@ class FortlockProvider extends ChangeNotifier {
 
     mqttService.connectionStream.listen((connected) {
       mqttConnected = connected;
+      if (connected) mqttError = null;
+      notifyListeners();
+    });
+
+    mqttService.errorStream.listen((error) {
+      mqttError = error;
       notifyListeners();
     });
 

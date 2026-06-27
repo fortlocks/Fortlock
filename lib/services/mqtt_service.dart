@@ -24,11 +24,13 @@ class MqttService {
   final _accessController = StreamController<Map<String, dynamic>>.broadcast();
   final _alarmController = StreamController<Map<String, dynamic>>.broadcast();
   final _connectionController = StreamController<bool>.broadcast();
+  final _errorController = StreamController<String>.broadcast();
 
   Stream<Map<String, dynamic>> get statusStream => _statusController.stream;
   Stream<Map<String, dynamic>> get accessStream => _accessController.stream;
   Stream<Map<String, dynamic>> get alarmStream => _alarmController.stream;
   Stream<bool> get connectionStream => _connectionController.stream;
+  Stream<String> get errorStream => _errorController.stream;
 
   bool get isConnected =>
       _client?.connectionStatus?.state == MqttConnectionState.connected;
@@ -56,6 +58,7 @@ class MqttService {
       await _client!.connect();
     } catch (e) {
       _connectionController.add(false);
+      _errorController.add(e.toString());
       _client?.disconnect();
       return;
     }
@@ -64,6 +67,9 @@ class MqttService {
       _subscribeAll();
     } else {
       _connectionController.add(false);
+      _errorController.add(
+          'Connection state: ${_client!.connectionStatus?.state}, '
+          'Return code: ${_client!.connectionStatus?.returnCode}');
     }
   }
 
@@ -127,6 +133,7 @@ class MqttService {
     _accessController.close();
     _alarmController.close();
     _connectionController.close();
+    _errorController.close();
     _client?.disconnect();
   }
 }

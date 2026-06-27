@@ -61,7 +61,33 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+
+            if (!provider.mqttConnected && provider.mqttError != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.warning),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('MQTT Error:',
+                        style: TextStyle(
+                            color: AppColors.warning,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(provider.mqttError!,
+                        style: const TextStyle(color: AppColors.greyDark, fontSize: 11)),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 8),
 
             Container(
               width: double.infinity,
