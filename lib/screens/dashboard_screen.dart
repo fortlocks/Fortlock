@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../theme/app_colors.dart';
 import '../services/fortlock_provider.dart';
 import '../widgets/status_card.dart';
 
@@ -10,6 +12,7 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<FortlockProvider>();
     final status = provider.systemStatus;
+    final isDanger = status.isAlarmOn || status.isPanicMode || status.isDoorOpen;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -20,14 +23,24 @@ class DashboardScreen extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'FORTLOCK',
-                  style: TextStyle(
-                    color: Color(0xFF00D4FF),
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Dashboard',
+                      style: TextStyle(
+                        color: AppColors.darkBlue,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      provider.currentUser != null
+                          ? 'Halo, ${provider.currentUser!.nama}'
+                          : 'Smart Anti-Theft Home',
+                      style: const TextStyle(color: AppColors.grey, fontSize: 12),
+                    ),
+                  ],
                 ),
                 Row(
                   children: [
@@ -36,26 +49,56 @@ class DashboardScreen extends StatelessWidget {
                       height: 8,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: provider.mqttConnected
-                            ? const Color(0xFF00E676)
-                            : const Color(0xFFFF3D5A),
+                        color: provider.mqttConnected ? AppColors.safe : AppColors.danger,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      provider.mqttConnected ? 'MQTT OK' : 'MQTT OFF',
-                      style: const TextStyle(
-                        color: Color(0xFF8BA4C0),
-                        fontSize: 11,
-                      ),
+                      provider.mqttConnected ? 'Terhubung' : 'Putus',
+                      style: const TextStyle(color: AppColors.greyDark, fontSize: 11),
                     ),
                   ],
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
-            if (status.isPanicMode) _buildPanicBanner(context),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDanger ? AppColors.danger : AppColors.safe,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  Icon(isDanger ? Icons.warning_amber : Icons.verified_user,
+                      color: AppColors.white, size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isDanger ? 'STATUS: BAHAYA' : 'STATUS: AMAN',
+                          style: const TextStyle(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15),
+                        ),
+                        Text(
+                          status.lastUpdate != null
+                              ? 'Update terakhir: ${DateFormat('HH:mm:ss').format(status.lastUpdate!)}'
+                              : 'Menunggu data...',
+                          style: const TextStyle(color: AppColors.white, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
 
             GridView.count(
               crossAxisCount: 2,
@@ -66,164 +109,61 @@ class DashboardScreen extends StatelessWidget {
               childAspectRatio: 1.3,
               children: [
                 StatusCard(
-                  label: 'PINTU',
+                  label: 'STATUS PINTU',
                   value: status.isDoorOpen ? 'TERBUKA' : 'TERTUTUP',
-                  icon: status.isDoorOpen
-                      ? Icons.door_sliding
-                      : Icons.door_front_door,
-                  color: status.isDoorOpen
-                      ? const Color(0xFFFFB300)
-                      : const Color(0xFF00E676),
+                  icon: status.isDoorOpen ? Icons.door_sliding : Icons.door_front_door,
+                  isSafe: !status.isDoorOpen,
                 ),
                 StatusCard(
-                  label: 'KUNCI',
+                  label: 'STATUS KUNCI',
                   value: status.isLocked ? 'TERKUNCI' : 'TERBUKA',
                   icon: status.isLocked ? Icons.lock : Icons.lock_open,
-                  color: status.isLocked
-                      ? const Color(0xFF00E676)
-                      : const Color(0xFFFF3D5A),
+                  isSafe: status.isLocked,
                 ),
                 StatusCard(
-                  label: 'ALARM',
+                  label: 'STATUS ALARM',
                   value: status.isAlarmOn ? 'AKTIF' : 'NONAKTIF',
                   icon: Icons.notifications_active,
-                  color: status.isAlarmOn
-                      ? const Color(0xFFFF3D5A)
-                      : const Color(0xFF8BA4C0),
+                  isSafe: !status.isAlarmOn,
                 ),
                 StatusCard(
-                  label: 'ESP32',
+                  label: 'STATUS ESP32',
                   value: status.isOnline ? 'ONLINE' : 'OFFLINE',
                   icon: Icons.developer_board,
-                  color: status.isOnline
-                      ? const Color(0xFF00D4FF)
-                      : const Color(0xFF4A6080),
+                  isSafe: status.isOnline,
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-            const Text(
-              'KONTROL CEPAT',
-              style: TextStyle(
-                color: Color(0xFF8BA4C0),
-                fontSize: 12,
-                letterSpacing: 1.5,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: provider.mqttConnected
-                        ? () => status.isLocked
-                            ? provider.unlockDoor()
-                            : provider.lockDoor()
-                        : null,
-                    icon: Icon(status.isLocked ? Icons.lock_open : Icons.lock),
-                    label: Text(status.isLocked ? 'Buka Kunci' : 'Kunci Pintu'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E6FD9),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                  ),
+            if (status.isPanicMode)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                margin: const EdgeInsets.only(top: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.danger),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: status.isAlarmOn ? provider.silenceAlarm : null,
-                    icon: const Icon(Icons.notifications_off),
-                    label: const Text('Matikan Alarm'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0F1E30),
-                      foregroundColor: const Color(0xFFEDF2FF),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                child: const Row(
+                  children: [
+                    Icon(Icons.emergency, color: AppColors.danger),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'PANIC MODE AKTIF — Semua akses dinonaktifkan sementara',
+                        style: TextStyle(
+                            color: AppColors.danger,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12),
+                      ),
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => status.isPanicMode
-                    ? provider.cancelPanic()
-                    : _confirmPanic(context, provider),
-                icon: const Icon(Icons.emergency),
-                label: Text(status.isPanicMode
-                    ? 'BATALKAN MODE PANIC'
-                    : 'AKTIFKAN MODE PANIC'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF3D5A),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  ],
                 ),
               ),
-            ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildPanicBanner(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFF3D5A).withOpacity(0.12),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFFF3D5A)),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.warning_amber, color: Color(0xFFFF3D5A)),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'MODE PANIC AKTIF — Periksa kondisi rumah segera',
-              style: TextStyle(
-                color: Color(0xFFFF3D5A),
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmPanic(BuildContext context, FortlockProvider provider) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0B1524),
-        title: const Text('Aktifkan Mode Panic?',
-            style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'Ini akan memicu alarm dan notifikasi darurat ke semua pengguna.',
-          style: TextStyle(color: Color(0xFF8BA4C0)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () {
-              provider.triggerPanic();
-              Navigator.pop(ctx);
-            },
-            child: const Text('Aktifkan',
-                style: TextStyle(color: Color(0xFFFF3D5A))),
-          ),
-        ],
       ),
     );
   }
