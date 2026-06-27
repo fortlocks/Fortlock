@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../theme/app_colors.dart';
 import '../services/fortlock_provider.dart';
 import '../models/guest_access.dart';
 
@@ -11,6 +12,7 @@ class GuestAccessScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<FortlockProvider>();
     final guests = provider.guestList;
+    final canManage = provider.currentUser?.isOwner ?? false;
 
     return SafeArea(
       child: Column(
@@ -21,43 +23,36 @@ class GuestAccessScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'AKSES TAMU',
+                  'Guest Access',
                   style: TextStyle(
-                    color: Color(0xFF00D4FF),
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
-                  ),
+                      color: AppColors.darkBlue, fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                ElevatedButton.icon(
-                  onPressed: () => _showAddGuestDialog(context, provider),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Tambah'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E6FD9),
-                    foregroundColor: Colors.white,
+                if (canManage)
+                  ElevatedButton.icon(
+                    onPressed: () => _showAddGuestDialog(context, provider),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Tambah'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.darkBlue,
+                      foregroundColor: AppColors.white,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
           Expanded(
             child: guests.isEmpty
                 ? const Center(
-                    child: Text(
-                      'Belum ada akses tamu',
-                      style: TextStyle(color: Color(0xFF4A6080)),
-                    ),
+                    child: Text('Belum ada akses tamu', style: TextStyle(color: AppColors.grey)),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     itemCount: guests.length,
                     itemBuilder: (context, index) {
                       return _GuestTile(
                         guest: guests[index],
-                        onRevoke: () =>
-                            provider.removeGuest(guests[index]),
+                        canManage: canManage,
+                        onRevoke: () => provider.removeGuest(guests[index]),
                       );
                     },
                   ),
@@ -80,38 +75,25 @@ class GuestAccessScreen extends StatelessWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) {
           return AlertDialog(
-            backgroundColor: const Color(0xFF0B1524),
-            title: const Text('Tambah Akses Tamu',
-                style: TextStyle(color: Colors.white)),
+            backgroundColor: AppColors.white,
+            title: const Text('Tambah Akses Tamu', style: TextStyle(color: AppColors.darkBlue)),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     controller: namaCtrl,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Nama Tamu',
-                      labelStyle: TextStyle(color: Color(0xFF8BA4C0)),
-                    ),
+                    decoration: const InputDecoration(labelText: 'Nama Tamu'),
                   ),
                   TextField(
                     controller: rfidCtrl,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'RFID UID',
-                      labelStyle: TextStyle(color: Color(0xFF8BA4C0)),
-                    ),
+                    decoration: const InputDecoration(labelText: 'RFID UID'),
                   ),
                   const SizedBox(height: 12),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Tanggal Mulai',
-                        style: TextStyle(color: Color(0xFF8BA4C0))),
-                    subtitle: Text(
-                      DateFormat('dd MMM yyyy').format(tglMulai),
-                      style: const TextStyle(color: Colors.white),
-                    ),
+                    title: const Text('Tanggal Mulai'),
+                    subtitle: Text(DateFormat('dd/MM/yyyy').format(tglMulai)),
                     onTap: () async {
                       final picked = await showDatePicker(
                         context: ctx,
@@ -124,12 +106,8 @@ class GuestAccessScreen extends StatelessWidget {
                   ),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Tanggal Berakhir',
-                        style: TextStyle(color: Color(0xFF8BA4C0))),
-                    subtitle: Text(
-                      DateFormat('dd MMM yyyy').format(tglAkhir),
-                      style: const TextStyle(color: Colors.white),
-                    ),
+                    title: const Text('Tanggal Berakhir'),
+                    subtitle: Text(DateFormat('dd/MM/yyyy').format(tglAkhir)),
                     onTap: () async {
                       final picked = await showDatePicker(
                         context: ctx,
@@ -144,10 +122,7 @@ class GuestAccessScreen extends StatelessWidget {
               ),
             ),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Batal'),
-              ),
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
               TextButton(
                 onPressed: () {
                   if (namaCtrl.text.isEmpty || rfidCtrl.text.isEmpty) return;
@@ -165,8 +140,7 @@ class GuestAccessScreen extends StatelessWidget {
                   provider.addGuest(guest);
                   Navigator.pop(ctx);
                 },
-                child: const Text('Simpan',
-                    style: TextStyle(color: Color(0xFF00D4FF))),
+                child: const Text('Simpan'),
               ),
             ],
           );
@@ -178,24 +152,23 @@ class GuestAccessScreen extends StatelessWidget {
 
 class _GuestTile extends StatelessWidget {
   final GuestAccess guest;
+  final bool canManage;
   final VoidCallback onRevoke;
 
-  const _GuestTile({required this.guest, required this.onRevoke});
+  const _GuestTile({required this.guest, required this.canManage, required this.onRevoke});
 
   @override
   Widget build(BuildContext context) {
-    final color = guest.isActive
-        ? const Color(0xFF00E676)
-        : const Color(0xFF4A6080);
-    final formatter = DateFormat('dd MMM yyyy');
+    final color = guest.isActive ? AppColors.safe : AppColors.grey;
+    final formatter = DateFormat('dd/MM/yyyy');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF0B1524),
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.25)),
+        border: Border.all(color: AppColors.greyLight),
       ),
       child: Row(
         children: [
@@ -203,33 +176,22 @@ class _GuestTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  guest.namaTamu,
-                  style: const TextStyle(
-                    color: Color(0xFFEDF2FF),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
+                Text(guest.namaTamu,
+                    style: const TextStyle(
+                        color: AppColors.darkBlue, fontWeight: FontWeight.w600, fontSize: 14)),
                 const SizedBox(height: 2),
-                Text(
-                  '${formatter.format(guest.tanggalMulai)} - ${formatter.format(guest.tanggalBerakhir)}',
-                  style: const TextStyle(
-                      color: Color(0xFF8BA4C0), fontSize: 11),
-                ),
-                Text(
-                  guest.isActive ? 'AKTIF' : 'EXPIRED',
-                  style: TextStyle(
-                      color: color, fontSize: 10, fontWeight: FontWeight.bold),
-                ),
+                Text('${formatter.format(guest.tanggalMulai)} - ${formatter.format(guest.tanggalBerakhir)}',
+                    style: const TextStyle(color: AppColors.grey, fontSize: 11)),
+                Text(guest.isActive ? 'AKTIF' : 'EXPIRED',
+                    style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
-          IconButton(
-            onPressed: onRevoke,
-            icon: const Icon(Icons.delete_outline,
-                color: Color(0xFFFF3D5A)),
-          ),
+          if (canManage)
+            IconButton(
+              onPressed: onRevoke,
+              icon: const Icon(Icons.delete_outline, color: AppColors.danger),
+            ),
         ],
       ),
     );

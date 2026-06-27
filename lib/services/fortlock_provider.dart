@@ -3,25 +3,36 @@ import '../models/system_status.dart';
 import '../models/access_history.dart';
 import '../models/guest_access.dart';
 import '../models/app_notification.dart';
+import '../models/app_user.dart';
+import '../models/photo_evidence.dart';
 import '../services/mqtt_service.dart';
 import '../services/firebase_service.dart';
 import '../services/notification_service.dart';
+import '../services/auth_service.dart';
 
 class FortlockProvider extends ChangeNotifier {
   final MqttService mqttService = MqttService();
   final FirebaseService firebaseService = FirebaseService();
+  final AuthService authService = AuthService();
 
   SystemStatus systemStatus = SystemStatus();
   List<AccessHistory> history = [];
   List<GuestAccess> guestList = [];
   List<AppNotification> notifications = [];
+  List<AppUser> userList = [];
+  List<PhotoEvidence> evidenceList = [];
   bool mqttConnected = false;
+
+  AppUser? currentUser;
 
   String? _lastAlarmState;
   String? _lastModeState;
 
   Future<void> init() async {
     await NotificationService.init();
+    currentUser = await authService.getCurrentAppUser();
+    notifyListeners();
+
     await mqttService.connect();
 
     mqttService.connectionStream.listen((connected) {
@@ -29,13 +40,9 @@ class FortlockProvider extends ChangeNotifier {
       notifyListeners();
     });
 
-    mqttService.statusStream.listen((data) {
-      _handleMqttStatus(data);
-    });
-
-    mqttService.accessLogStream.listen((data) {
-      _handleAccessLog(data);
-    });
+    mqttService.statusStream.listen(_handleMqttStatus);
+    mqttService.accessStream.listen(_handleAccessEvent);
+    mqttService.alarmStream.listen(_handleAlarmEvent);
 
     firebaseService.watchSystemStatus().listen((status) {
       systemStatus = status;
@@ -57,6 +64,21 @@ class FortlockProvider extends ChangeNotifier {
       notifications = list;
       notifyListeners();
     });
+
+    firebaseService.watchPhotoEvidence().listen((list) {
+      evidenceList = list;
+      notifyListeners();
+    });
+
+    authService.watchUsers().listen((list) {
+      userList = list;
+      notifyListeners();
+    });
+  }
+
+  Future<void> refreshCurrentUser() async {
+    currentUser = await authService.getCurrentAppUser();
+    notifyListeners();
   }
 
   void _handleMqttStatus(Map<String, dynamic> data) {
@@ -77,50 +99,55 @@ class FortlockProvider extends ChangeNotifier {
         lastUpdate: DateTime.now(),
       );
       notifyListeners();
-
       firebaseService.updateSystemStatus(updates);
-
       _checkAlertConditions(updates);
+    }
+  }
+
+  void _handleAlarmEvent(Map<String, dynamic> data) {
+    final state = data['raw'] ?? data['state'];
+    if (state == 'ALARM_ON' && _lastAlarmState != 'on') {
+      _notifyAndLog('Alarm Aktif', 'Sensor mendeteksi aktivitas tidak normal di pintu.', 'danger');
+      _lastAlarmState = 'on';
+    } else if (state == 'ALARM_OFF') {
+      _lastAlarmState = 'off';
     }
   }
 
   void _checkAlertConditions(Map<String, dynamic> updates) {
     if (updates['alarm'] == 'on' && _lastAlarmState != 'on') {
-      NotificationService.show(
-        title: '🚨 Alarm Aktif!',
-        body: 'Sensor mendeteksi aktivitas tidak normal di pintu.',
-      );
-      firebaseService.addNotification(AppNotification(
-        id: '',
-        judul: 'Alarm Aktif',
-        pesan: 'Sensor mendeteksi aktivitas tidak normal di pintu.',
-        timestamp: DateTime.now(),
-        type: 'danger',
-      ));
+      _notifyAndLog('Alarm Aktif', 'Sensor mendeteksi aktivitas tidak normal di pintu.', 'danger');
     }
     _lastAlarmState = updates['alarm'] ?? _lastAlarmState;
 
     if (updates['mode'] == 'panic' && _lastModeState != 'panic') {
-      NotificationService.show(
-        title: '🆘 Mode Panic Diaktifkan',
-        body: 'Sistem dalam mode panic. Periksa kondisi rumah segera.',
-      );
-      firebaseService.addNotification(AppNotification(
-        id: '',
-        judul: 'Mode Panic',
-        pesan: 'Sistem dalam mode panic. Periksa kondisi rumah segera.',
-        timestamp: DateTime.now(),
-        type: 'danger',
-      ));
+      _notifyAndLog('Mode Panic', 'Sistem dalam mode panic. Periksa kondisi rumah segera.', 'danger');
     }
     _lastModeState = updates['mode'] ?? _lastModeState;
+
+    if (updates['pintu'] == 'open') {
+      _notifyAndLog('Pintu Dibuka', 'Pintu baru saja dibuka.', 'info');
+    } else if (updates['pintu'] == 'closed') {
+      _notifyAndLog('Pintu Ditutup', 'Pintu baru saja ditutup.', 'info');
+    }
   }
 
-  void _handleAccessLog(Map<String, dynamic> data) {
+  void _notifyAndLog(String judul, String pesan, String type) {
+    NotificationService.show(title: judul, body: pesan);
+    firebaseService.addNotification(AppNotification(
+      id: '',
+      judul: judul,
+      pesan: pesan,
+      timestamp: DateTime.now(),
+      type: type,
+    ));
+  }
+
+  void _handleAccessEvent(Map<String, dynamic> data) {
     final entry = AccessHistory(
       id: '',
       nama: data['nama'] ?? 'Tidak diketahui',
-      rfidUid: data['rfid_uid'] ?? data['raw'] ?? '',
+      rfidUid: data['uid'] ?? data['rfid_uid'] ?? data['raw'] ?? '',
       timestamp: DateTime.now(),
       status: data['status'] ?? 'failed',
       jenis: data['jenis'] ?? 'rfid',
@@ -129,10 +156,7 @@ class FortlockProvider extends ChangeNotifier {
     firebaseService.addHistory(entry);
 
     if (entry.status != 'success') {
-      NotificationService.show(
-        title: '⚠️ Akses Ditolak',
-        body: 'RFID tidak dikenal mencoba mengakses pintu.',
-      );
+      _notifyAndLog('RFID Tidak Dikenal', 'Percobaan akses dengan RFID tidak dikenal.', 'warning');
     }
   }
 
@@ -140,39 +164,32 @@ class FortlockProvider extends ChangeNotifier {
     for (final guest in list) {
       if (guest.isActive && guest.isExpiredNow()) {
         firebaseService.updateGuestStatus(guest.id, 'expired');
-        mqttService.revokeGuestRfid(guest.rfidUid);
       }
     }
   }
 
-  void lockDoor() {
-    mqttService.lockDoor();
-  }
-
-  void unlockDoor() {
-    mqttService.unlockDoor();
-  }
-
-  void silenceAlarm() {
-    mqttService.triggerAlarmOff();
-  }
+  void lockDoor() => mqttService.lockDoor();
+  void unlockDoor() => mqttService.unlockDoor();
+  void alarmOn() => mqttService.alarmOn();
+  void alarmOff() => mqttService.alarmOff();
 
   void triggerPanic() {
     mqttService.triggerPanic();
-  }
-
-  void cancelPanic() {
-    mqttService.cancelPanic();
+    _notifyAndLog('Panic Mode', 'Panic Mode diaktifkan. Semua akses sementara dinonaktifkan.', 'danger');
   }
 
   Future<void> addGuest(GuestAccess guest) async {
     await firebaseService.addGuestAccess(guest);
-    mqttService.registerGuestRfid(guest.rfidUid);
   }
 
   Future<void> removeGuest(GuestAccess guest) async {
     await firebaseService.deleteGuestAccess(guest.id);
-    mqttService.revokeGuestRfid(guest.rfidUid);
+  }
+
+  Future<void> logout() async {
+    await authService.logout();
+    currentUser = null;
+    notifyListeners();
   }
 
   @override

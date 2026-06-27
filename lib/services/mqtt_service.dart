@@ -7,22 +7,22 @@ class MqttService {
   static const int port = 1883;
   static const String clientIdPrefix = 'fortlock_app_';
 
-  static const String topicStatus = 'fortlock/smart_home/status';
-  static const String topicControl = 'fortlock/smart_home/control';
-  static const String topicRegister = 'fortlock/smart_home/register';
-  static const String topicPanic = 'fortlock/smart_home/panic';
-  static const String topicAccessLog = 'fortlock/smart_home/access_log';
+  static const String topicStatus = 'smart_home/status';
+  static const String topicControl = 'smart_home/control';
+  static const String topicAlarm = 'smart_home/alarm';
+  static const String topicAccess = 'smart_home/access';
+  static const String topicRegister = 'smart_home/register';
 
   MqttServerClient? _client;
 
   final _statusController = StreamController<Map<String, dynamic>>.broadcast();
-  final _accessLogController =
-      StreamController<Map<String, dynamic>>.broadcast();
+  final _accessController = StreamController<Map<String, dynamic>>.broadcast();
+  final _alarmController = StreamController<Map<String, dynamic>>.broadcast();
   final _connectionController = StreamController<bool>.broadcast();
 
   Stream<Map<String, dynamic>> get statusStream => _statusController.stream;
-  Stream<Map<String, dynamic>> get accessLogStream =>
-      _accessLogController.stream;
+  Stream<Map<String, dynamic>> get accessStream => _accessController.stream;
+  Stream<Map<String, dynamic>> get alarmStream => _alarmController.stream;
   Stream<bool> get connectionStream => _connectionController.stream;
 
   bool get isConnected =>
@@ -60,17 +60,13 @@ class MqttService {
     }
   }
 
-  void _onConnected() {
-    _connectionController.add(true);
-  }
-
-  void _onDisconnected() {
-    _connectionController.add(false);
-  }
+  void _onConnected() => _connectionController.add(true);
+  void _onDisconnected() => _connectionController.add(false);
 
   void _subscribeAll() {
     _client!.subscribe(topicStatus, MqttQos.atLeastOnce);
-    _client!.subscribe(topicAccessLog, MqttQos.atLeastOnce);
+    _client!.subscribe(topicAccess, MqttQos.atLeastOnce);
+    _client!.subscribe(topicAlarm, MqttQos.atLeastOnce);
 
     _client!.updates!.listen((List<MqttReceivedMessage<MqttMessage>> events) {
       final recMess = events[0].payload as MqttPublishMessage;
@@ -80,8 +76,10 @@ class MqttService {
 
       if (topic == topicStatus) {
         _statusController.add(_parsePayload(payload));
-      } else if (topic == topicAccessLog) {
-        _accessLogController.add(_parsePayload(payload));
+      } else if (topic == topicAccess) {
+        _accessController.add(_parsePayload(payload));
+      } else if (topic == topicAlarm) {
+        _alarmController.add(_parsePayload(payload));
       }
     });
   }
@@ -109,21 +107,18 @@ class MqttService {
 
   void lockDoor() => publish(topicControl, 'LOCK');
   void unlockDoor() => publish(topicControl, 'UNLOCK');
-  void triggerAlarmOff() => publish(topicControl, 'ALARM_OFF');
-  void triggerPanic() => publish(topicPanic, 'PANIC_ON');
-  void cancelPanic() => publish(topicPanic, 'PANIC_OFF');
-  void registerGuestRfid(String rfidUid) =>
-      publish(topicRegister, rfidUid);
-  void revokeGuestRfid(String rfidUid) =>
-      publish(topicControl, 'REVOKE_$rfidUid');
+  void alarmOn() => publish(topicControl, 'ALARM_ON');
+  void alarmOff() => publish(topicControl, 'ALARM_OFF');
+  void triggerPanic() => publish(topicControl, 'PANIC');
 
-  void disconnect() {
-    _client?.disconnect();
-  }
+  void registerRfid(String rfidUid) => publish(topicRegister, rfidUid);
+
+  void disconnect() => _client?.disconnect();
 
   void dispose() {
     _statusController.close();
-    _accessLogController.close();
+    _accessController.close();
+    _alarmController.close();
     _connectionController.close();
     _client?.disconnect();
   }

@@ -3,6 +3,7 @@ import '../models/access_history.dart';
 import '../models/guest_access.dart';
 import '../models/app_notification.dart';
 import '../models/system_status.dart';
+import '../models/photo_evidence.dart';
 
 class FirebaseService {
   final DatabaseReference _root = FirebaseDatabase.instance.ref();
@@ -66,10 +67,7 @@ class FirebaseService {
   }
 
   Future<void> updateGuestStatus(String guestId, String status) async {
-    await _root
-        .child('guest_access')
-        .child(guestId)
-        .update({'status': status});
+    await _root.child('guest_access').child(guestId).update({'status': status});
   }
 
   Future<void> deleteGuestAccess(String guestId) async {
@@ -101,13 +99,10 @@ class FirebaseService {
   }
 
   Future<void> markNotificationRead(String notifId) async {
-    await _root
-        .child('notifications')
-        .child(notifId)
-        .update({'read': true});
+    await _root.child('notifications').child(notifId).update({'read': true});
   }
 
-  Stream<List<Map<String, dynamic>>> watchPhotoEvidence({int limit = 20}) {
+  Stream<List<PhotoEvidence>> watchPhotoEvidence({int limit = 30}) {
     return _root
         .child('photo_evidence')
         .orderByChild('timestamp')
@@ -116,16 +111,18 @@ class FirebaseService {
         .map((event) {
       final data = event.snapshot.value;
       if (data is Map) {
-        final list = data.entries.map((e) {
-          final map = Map<String, dynamic>.from(e.value as Map);
-          map['id'] = e.key;
-          return map;
-        }).toList();
-        list.sort((a, b) =>
-            (b['timestamp'] ?? '').compareTo(a['timestamp'] ?? ''));
+        final list = data.entries
+            .map((e) => PhotoEvidence.fromMap(
+                e.key.toString(), e.value as Map<dynamic, dynamic>))
+            .toList();
+        list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
         return list;
       }
-      return <Map<String, dynamic>>[];
+      return <PhotoEvidence>[];
     });
+  }
+
+  Future<void> addPhotoEvidence(PhotoEvidence evidence) async {
+    await _root.child('photo_evidence').push().set(evidence.toMap());
   }
 }

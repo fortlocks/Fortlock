@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'services/fortlock_provider.dart';
-import 'screens/home_shell.dart';
+import 'screens/splash_screen.dart';
+import 'theme/app_colors.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -24,16 +25,16 @@ class FortlockApp extends StatelessWidget {
         title: 'Fortlock',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          scaffoldBackgroundColor: const Color(0xFF050A14),
+          scaffoldBackgroundColor: AppColors.offWhite,
           fontFamily: 'Roboto',
-          colorScheme: ColorScheme.dark(
-            primary: const Color(0xFF00D4FF),
-            secondary: const Color(0xFF1E6FD9),
-            surface: const Color(0xFF0B1524),
+          colorScheme: ColorScheme.light(
+            primary: AppColors.darkBlue,
+            secondary: AppColors.primaryBlue,
+            surface: AppColors.white,
           ),
           useMaterial3: true,
         ),
-        home: const HomeShell(),
+        home: const SplashScreen(),
       ),
     );
   }

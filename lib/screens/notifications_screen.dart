@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../theme/app_colors.dart';
 import '../services/fortlock_provider.dart';
 import '../models/app_notification.dart';
 
@@ -10,11 +11,11 @@ class NotificationsScreen extends StatelessWidget {
   Color _colorFor(String type) {
     switch (type) {
       case 'danger':
-        return const Color(0xFFFF3D5A);
+        return AppColors.danger;
       case 'warning':
-        return const Color(0xFFFFB300);
+        return AppColors.warning;
       default:
-        return const Color(0xFF00D4FF);
+        return AppColors.primaryBlue;
     }
   }
 
@@ -31,35 +32,26 @@ class NotificationsScreen extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'NOTIFIKASI',
+                'Notification Center',
                 style: TextStyle(
-                  color: Color(0xFF00D4FF),
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                ),
+                    color: AppColors.darkBlue, fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),
           ),
           Expanded(
             child: notifications.isEmpty
                 ? const Center(
-                    child: Text(
-                      'Tidak ada notifikasi',
-                      style: TextStyle(color: Color(0xFF4A6080)),
-                    ),
+                    child: Text('Tidak ada notifikasi', style: TextStyle(color: AppColors.grey)),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     itemCount: notifications.length,
                     itemBuilder: (context, index) {
                       final notif = notifications[index];
                       return _NotifTile(
                         notif: notif,
                         color: _colorFor(notif.type),
-                        onTap: () => provider.firebaseService
-                            .markNotificationRead(notif.id),
+                        onTap: () => provider.firebaseService.markNotificationRead(notif.id),
                       );
                     },
                   ),
@@ -75,12 +67,11 @@ class _NotifTile extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
 
-  const _NotifTile(
-      {required this.notif, required this.color, required this.onTap});
+  const _NotifTile({required this.notif, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final formatter = DateFormat('dd MMM, HH:mm');
+    final formatter = DateFormat('dd/MM HH:mm');
 
     return InkWell(
       onTap: onTap,
@@ -89,9 +80,7 @@ class _NotifTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: notif.read
-              ? const Color(0xFF0B1524)
-              : color.withOpacity(0.08),
+          color: notif.read ? AppColors.white : color.withOpacity(0.06),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: color.withOpacity(0.3)),
         ),
@@ -109,26 +98,14 @@ class _NotifTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    notif.judul,
-                    style: const TextStyle(
-                      color: Color(0xFFEDF2FF),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
+                  Text(notif.judul,
+                      style: const TextStyle(
+                          color: AppColors.darkBlue, fontWeight: FontWeight.w600, fontSize: 14)),
                   const SizedBox(height: 3),
-                  Text(
-                    notif.pesan,
-                    style: const TextStyle(
-                        color: Color(0xFF8BA4C0), fontSize: 12),
-                  ),
+                  Text(notif.pesan, style: const TextStyle(color: AppColors.greyDark, fontSize: 12)),
                   const SizedBox(height: 4),
-                  Text(
-                    formatter.format(notif.timestamp),
-                    style: const TextStyle(
-                        color: Color(0xFF4A6080), fontSize: 10),
-                  ),
+                  Text(formatter.format(notif.timestamp),
+                      style: const TextStyle(color: AppColors.grey, fontSize: 10)),
                 ],
               ),
             ),
