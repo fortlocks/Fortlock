@@ -36,6 +36,7 @@ class MqttService {
       _client?.connectionStatus?.state == MqttConnectionState.connected;
 
   Future<void> connect() async {
+    _errorController.add('Memulai koneksi ke $broker:$port...');
     final clientId =
         '$clientIdPrefix${DateTime.now().millisecondsSinceEpoch}';
     _client = MqttServerClient.withPort(broker, clientId, port);
@@ -47,30 +48,34 @@ class MqttService {
     _client!.onDisconnected = _onDisconnected;
     _client!.logging(on: false);
 
-final connMess = MqttConnectMessage()
+    final connMess = MqttConnectMessage()
         .withClientIdentifier(clientId)
         .startClean()
         .withWillQos(MqttQos.atLeastOnce);
     _client!.connectionMessage = connMess;
 
-
     try {
+      _errorController.add('Menjalankan connect()...');
       await _client!.connect(username, password).timeout(const Duration(seconds: 15));
-    _client!.connectionMessage = connMess;
+      _errorController.add('connect() selesai tanpa exception.');
     } catch (e) {
       _connectionController.add(false);
-      _errorController.add(e.toString());
+      _errorController.add('EXCEPTION: ${e.toString()}');
       _client?.disconnect();
       return;
     }
 
-    if (_client!.connectionStatus?.state == MqttConnectionState.connected) {
+    final state = _client!.connectionStatus?.state;
+    final returnCode = _client!.connectionStatus?.returnCode;
+    _errorController.add('State setelah connect: $state, returnCode: $returnCode');
+
+    if (state == MqttConnectionState.connected) {
+      _connectionController.add(true);
+      _errorController.add('Berhasil terhubung! Subscribing...');
       _subscribeAll();
     } else {
       _connectionController.add(false);
-      _errorController.add(
-          'Connection state: ${_client!.connectionStatus?.state}, '
-          'Return code: ${_client!.connectionStatus?.returnCode}');
+      _errorController.add('Gagal: state=$state, returnCode=$returnCode');
     }
   }
 

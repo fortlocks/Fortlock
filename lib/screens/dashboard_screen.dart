@@ -63,7 +63,7 @@ class DashboardScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            if (!provider.mqttConnected && provider.mqttError != null)
+            if (!provider.mqttConnected && provider.mqttLog.isNotEmpty)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
@@ -76,14 +76,18 @@ class DashboardScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('MQTT Error:',
+                    const Text('MQTT Log:',
                         style: TextStyle(
                             color: AppColors.warning,
                             fontSize: 11,
                             fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    Text(provider.mqttError!,
-                        style: const TextStyle(color: AppColors.greyDark, fontSize: 11)),
+                    ...provider.mqttLog.map((log) => Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Text(log,
+                              style: const TextStyle(
+                                  color: AppColors.greyDark, fontSize: 10)),
+                        )),
                   ],
                 ),
               ),
