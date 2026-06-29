@@ -44,7 +44,7 @@ class MqttService {
     _client!.securityContext = SecurityContext.defaultContext;
     _client!.onBadCertificate = (dynamic certificate) => true;
     _client!.keepAlivePeriod = 30;
-    _client!.autoReconnect = true;
+    _client!.autoReconnect = false;
     _client!.onConnected = _onConnected;
     _client!.onDisconnected = _onDisconnected;
     _client!.logging(on: true);
