@@ -47,7 +47,7 @@ class MqttService {
     _client!.autoReconnect = true;
     _client!.onConnected = _onConnected;
     _client!.onDisconnected = _onDisconnected;
-    _client!.logging(on: false);
+    _client!.logging(on: true);
 
     final connMess = MqttConnectMessage()
         .withClientIdentifier(clientId)
