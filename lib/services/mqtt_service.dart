@@ -39,7 +39,7 @@ class MqttService {
     _errorController.add('Memulai koneksi WebSocket ke $broker:$port...');
     final clientId =
         '$clientIdPrefix${DateTime.now().millisecondsSinceEpoch}';
-    _client = MqttServerClient('wss://$broker', clientId);
+    _client = MqttServerClient(broker, clientId);
     _client!.port = port;
     _client!.useWebSocket = true;
     _client!.secure = true;
