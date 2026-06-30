@@ -13,7 +13,7 @@ dependencies:
   cupertino_icons: ^1.0.6
 
   # MQTT
-  mqtt_client: ^10.11.11
+  mqtt5_client: ^4.7.0
 
   # Firebase
   firebase_core: ^2.27.0

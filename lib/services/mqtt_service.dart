@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'dart:io';
-import 'package:mqtt_client/mqtt_client.dart';
-import 'package:mqtt_client/mqtt_server_client.dart';
+import 'package:mqtt5_client/mqtt5_client.dart';
+import 'package:mqtt5_client/mqtt5_server_client.dart';
 
 class MqttService {
   static const String broker =
       'd566266c1ba14ed2aa4c2b5b823596a2.s1.eu.hivemq.cloud';
-  static const int port = 8884;
+  static const int port = 8883;
   static const String username = 'Fortlock';
   static const String password = 'Fortlock1';
 
@@ -36,25 +35,22 @@ class MqttService {
       _client?.connectionStatus?.state == MqttConnectionState.connected;
 
   Future<void> connect() async {
-    _errorController.add('Memulai koneksi WebSocket ke $broker:$port...');
+    _errorController.add('Memulai koneksi MQTT5 ke $broker:$port...');
     final clientId =
         '$clientIdPrefix${DateTime.now().millisecondsSinceEpoch}';
     _client = MqttServerClient(broker, clientId);
     _client!.port = port;
-    _client!.useWebSocket = true;
     _client!.secure = true;
-    _client!.securityContext = SecurityContext(withTrustedRoots: true);
-    _client!.onBadCertificate = (dynamic certificate) => true;
     _client!.keepAlivePeriod = 30;
     _client!.autoReconnect = false;
     _client!.onConnected = _onConnected;
     _client!.onDisconnected = _onDisconnected;
     _client!.logging(on: true);
+    _client!.setProtocolV311();
 
     final connMess = MqttConnectMessage()
         .withClientIdentifier(clientId)
-        .startClean()
-        .withWillQos(MqttQos.atLeastOnce);
+        .startClean();
     _client!.connectionMessage = connMess;
 
     try {
@@ -69,8 +65,7 @@ class MqttService {
     }
 
     final state = _client!.connectionStatus?.state;
-    final returnCode = _client!.connectionStatus?.returnCode;
-    _errorController.add('State setelah connect: $state, returnCode: $returnCode');
+    _errorController.add('State setelah connect: $state');
 
     if (state == MqttConnectionState.connected) {
       _connectionController.add(true);
@@ -78,7 +73,7 @@ class MqttService {
       _subscribeAll();
     } else {
       _connectionController.add(false);
-      _errorController.add('Gagal: state=$state, returnCode=$returnCode');
+      _errorController.add('Gagal: state=$state');
     }
   }
 
@@ -93,7 +88,7 @@ class MqttService {
     _client!.updates!.listen((List<MqttReceivedMessage<MqttMessage>> events) {
       final recMess = events[0].payload as MqttPublishMessage;
       final payload = MqttPublishPayload.bytesToStringAsString(
-          recMess.payload.message);
+          recMess.payload.message!);
       final topic = events[0].topic;
 
       if (topic == topicStatus) {
@@ -122,7 +117,7 @@ class MqttService {
 
   void publish(String topic, String message) {
     if (!isConnected) return;
-    final builder = MqttClientPayloadBuilder();
+    final builder = MqttPayloadBuilder();
     builder.addString(message);
     _client!.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
   }
