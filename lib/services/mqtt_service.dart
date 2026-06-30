@@ -46,7 +46,6 @@ class MqttService {
     _client!.onConnected = _onConnected;
     _client!.onDisconnected = _onDisconnected;
     _client!.logging(on: true);
-    _client!.setProtocolV311();
 
     final connMess = MqttConnectMessage()
         .withClientIdentifier(clientId)
