@@ -35,8 +35,6 @@ class FortlockProvider extends ChangeNotifier {
     currentUser = await authService.getCurrentAppUser();
     notifyListeners();
 
-    await mqttService.connect();
-
     mqttService.connectionStream.listen((connected) {
       mqttConnected = connected;
       if (connected) mqttError = null;
@@ -49,6 +47,8 @@ class FortlockProvider extends ChangeNotifier {
       if (mqttLog.length > 20) mqttLog.removeAt(0);
       notifyListeners();
     });
+
+    await mqttService.connect();
 
     mqttService.statusStream.listen(_handleMqttStatus);
     mqttService.accessStream.listen(_handleAccessEvent);
