@@ -28,10 +28,23 @@ class _HomeShellState extends State<HomeShell> {
     _init();
   }
 
+  String? _initError;
+
   Future<void> _init() async {
     final provider = context.read<FortlockProvider>();
-    await provider.init();
-    if (mounted) setState(() => _initialized = true);
+    try {
+      await provider.init();
+      if (mounted) setState(() => _initialized = true);
+    } catch (e, st) {
+      if (mounted) {
+        setState(() {
+          _initError = e.toString();
+          _initialized = true;
+        });
+      }
+      print('INIT ERROR: $e');
+      print(st);
+    }
   }
 
   @override
@@ -40,6 +53,19 @@ class _HomeShellState extends State<HomeShell> {
       return const Scaffold(
         backgroundColor: AppColors.offWhite,
         body: Center(child: CircularProgressIndicator(color: AppColors.primaryBlue)),
+      );
+    }
+
+    if (_initError != null) {
+      return Scaffold(
+        backgroundColor: AppColors.offWhite,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Text('INIT ERROR: $_initError',
+                style: const TextStyle(color: Colors.red, fontSize: 12)),
+          ),
+        ),
       );
     }
 
