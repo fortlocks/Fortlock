@@ -6,7 +6,7 @@ import 'package:mqtt_client/mqtt_server_client.dart';
 class MqttService {
   static const String broker =
       'd566266c1ba14ed2aa4c2b5b823596a2.s1.eu.hivemq.cloud';
-  static const int port = 8883;
+  static const int port = 8884;
   static const String username = 'Fortlock';
   static const String password = 'Fortlock1';
 
@@ -36,10 +36,12 @@ class MqttService {
       _client?.connectionStatus?.state == MqttConnectionState.connected;
 
   Future<void> connect() async {
-    _errorController.add('Memulai koneksi ke $broker:$port...');
+    _errorController.add('Memulai koneksi WebSocket ke $broker:$port...');
     final clientId =
         '$clientIdPrefix${DateTime.now().millisecondsSinceEpoch}';
-    _client = MqttServerClient.withPort(broker, clientId, port);
+    _client = MqttServerClient('wss://$broker', clientId);
+    _client!.port = port;
+    _client!.useWebSocket = true;
     _client!.secure = true;
     _client!.securityContext = SecurityContext(withTrustedRoots: true);
     _client!.onBadCertificate = (dynamic certificate) => true;
