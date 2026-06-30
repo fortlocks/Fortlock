@@ -41,7 +41,7 @@ class MqttService {
         '$clientIdPrefix${DateTime.now().millisecondsSinceEpoch}';
     _client = MqttServerClient.withPort(broker, clientId, port);
     _client!.secure = true;
-    _client!.securityContext = SecurityContext.defaultContext;
+    _client!.securityContext = SecurityContext(withTrustedRoots: true);
     _client!.onBadCertificate = (dynamic certificate) => true;
     _client!.keepAlivePeriod = 30;
     _client!.autoReconnect = false;
