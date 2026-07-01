@@ -62,35 +62,6 @@ class DashboardScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-
-            if (!provider.mqttConnected && provider.mqttLog.isNotEmpty)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.warning.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.warning),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('MQTT Log:',
-                        style: TextStyle(
-                            color: AppColors.warning,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    ...provider.mqttLog.map((log) => Padding(
-                          padding: const EdgeInsets.only(bottom: 2),
-                          child: Text(log,
-                              style: const TextStyle(
-                                  color: AppColors.greyDark, fontSize: 10)),
-                        )),
-                  ],
-                ),
-              ),
             const SizedBox(height: 8),
 
             Container(

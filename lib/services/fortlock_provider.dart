@@ -29,6 +29,16 @@ class FortlockProvider extends ChangeNotifier {
 
   String? _lastAlarmState;
   String? _lastModeState;
+  final Map<String, DateTime> _lastNotifTime = {};
+
+  bool _canNotify(String key, {int cooldownSeconds = 30}) {
+    final last = _lastNotifTime[key];
+    if (last == null || DateTime.now().difference(last).inSeconds > cooldownSeconds) {
+      _lastNotifTime[key] = DateTime.now();
+      return true;
+    }
+    return false;
+  }
 
   Future<void> init() async {
     await NotificationService.init();
@@ -39,6 +49,11 @@ class FortlockProvider extends ChangeNotifier {
       mqttConnected = connected;
       if (connected) mqttError = null;
       notifyListeners();
+      if (!connected) {
+        Future.delayed(const Duration(seconds: 5), () {
+          if (!mqttConnected) mqttService.connect();
+        });
+      }
     });
 
     mqttService.errorStream.listen((error) {
@@ -125,19 +140,19 @@ class FortlockProvider extends ChangeNotifier {
   }
 
   void _checkAlertConditions(Map<String, dynamic> updates) {
-    if (updates['alarm'] == 'on' && _lastAlarmState != 'on') {
+    if (updates['alarm'] == 'on' && _lastAlarmState != 'on' && _canNotify('alarm')) {
       _notifyAndLog('Alarm Aktif', 'Sensor mendeteksi aktivitas tidak normal di pintu.', 'danger');
     }
     _lastAlarmState = updates['alarm'] ?? _lastAlarmState;
 
-    if (updates['mode'] == 'panic' && _lastModeState != 'panic') {
+    if (updates['mode'] == 'panic' && _lastModeState != 'panic' && _canNotify('panic')) {
       _notifyAndLog('Mode Panic', 'Sistem dalam mode panic. Periksa kondisi rumah segera.', 'danger');
     }
     _lastModeState = updates['mode'] ?? _lastModeState;
 
-    if (updates['pintu'] == 'open') {
+    if (updates['pintu'] == 'open' && _canNotify('pintu_open')) {
       _notifyAndLog('Pintu Dibuka', 'Pintu baru saja dibuka.', 'info');
-    } else if (updates['pintu'] == 'closed') {
+    } else if (updates['pintu'] == 'closed' && _canNotify('pintu_closed')) {
       _notifyAndLog('Pintu Ditutup', 'Pintu baru saja ditutup.', 'info');
     }
   }
