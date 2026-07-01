@@ -132,7 +132,9 @@ class FortlockProvider extends ChangeNotifier {
   void _handleAlarmEvent(Map<String, dynamic> data) {
     final state = data['raw'] ?? data['state'];
     if (state == 'ALARM_ON' && _lastAlarmState != 'on') {
-      _notifyAndLog('Alarm Aktif', 'Sensor mendeteksi aktivitas tidak normal di pintu.', 'danger');
+      if (_canNotify('alarm')) {
+        _notifyAndLog('Alarm Aktif', 'Sensor mendeteksi aktivitas tidak normal di pintu.', 'danger');
+      }
       _lastAlarmState = 'on';
     } else if (state == 'ALARM_OFF') {
       _lastAlarmState = 'off';
@@ -181,7 +183,9 @@ class FortlockProvider extends ChangeNotifier {
     firebaseService.addHistory(entry);
 
     if (entry.status != 'success') {
-      _notifyAndLog('RFID Tidak Dikenal', 'Percobaan akses dengan RFID tidak dikenal.', 'warning');
+      if (_canNotify('rfid_unknown', cooldownSeconds: 10)) {
+        _notifyAndLog('RFID Tidak Dikenal', 'Percobaan akses dengan RFID tidak dikenal.', 'warning');
+      }
     }
   }
 
@@ -200,7 +204,9 @@ class FortlockProvider extends ChangeNotifier {
 
   void triggerPanic() {
     mqttService.triggerPanic();
-    _notifyAndLog('Panic Mode', 'Panic Mode diaktifkan. Semua akses sementara dinonaktifkan.', 'danger');
+    if (_canNotify('panic', cooldownSeconds: 60)) {
+      _notifyAndLog('Panic Mode', 'Panic Mode diaktifkan. Semua akses sementara dinonaktifkan.', 'danger');
+    }
   }
 
   Future<void> addGuest(GuestAccess guest) async {
