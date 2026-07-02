@@ -11,14 +11,14 @@ class AuthService {
   User? get currentFirebaseUser => _auth.currentUser;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  Future<bool> ownerExists() async {
-    final snapshot = await _usersRef
-        .orderByChild('role')
-        .equalTo('owner')
-        .limitToFirst(1)
-        .get();
-    return snapshot.exists && snapshot.children.isNotEmpty;
-  }
+Future<bool> ownerExists() async {
+  final snapshot = await FirebaseDatabase.instance
+      .ref()
+      .child('system_meta')
+      .child('owner_exists')
+      .get();
+  return snapshot.exists && snapshot.value == true;
+}
 
   Future<AppUser> setupOwner({
     required String nama,
@@ -46,12 +46,18 @@ class AuthService {
       createdAt: DateTime.now(),
     );
 
-    final ownerMap = owner.toMap();
-    ownerMap['no_telepon'] = noTelepon;
-    await _usersRef.child(uid).set(ownerMap);
+final ownerMap = owner.toMap();
+ownerMap['no_telepon'] = noTelepon;
+await _usersRef.child(uid).set(ownerMap);
 
-    return owner;
-  }
+await FirebaseDatabase.instance
+    .ref()
+    .child('system_meta')
+    .child('owner_exists')
+    .set(true);
+
+return owner;
+}
 
   Future<AppUser> login(String email, String password) async {
     final credential = await _auth.signInWithEmailAndPassword(
