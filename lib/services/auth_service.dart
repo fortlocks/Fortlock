@@ -20,12 +20,14 @@ Future<bool> ownerExists() async {
   return snapshot.exists && snapshot.value == true;
 }
 
-  Future<AppUser> setupOwner({
-    required String nama,
-    required String email,
-    required String password,
-    required String noTelepon,
-  }) async {
+Future<AppUser> setupOwner({
+  required String nama,
+  required String email,
+  required String password,
+  required String noTelepon,
+  String rfidUid = '',
+}) async {
+
     final exists = await ownerExists();
     if (exists) {
       throw Exception('Owner sudah terdaftar. Tidak bisa membuat Owner baru.');
@@ -36,15 +38,17 @@ Future<bool> ownerExists() async {
       password: password,
     );
 
-    final uid = credential.user!.uid;
-    final owner = AppUser(
-      uid: uid,
-      nama: nama,
-      email: email,
-      role: 'owner',
-      aktif: true,
-      createdAt: DateTime.now(),
-    );
+final uid = credential.user!.uid;
+final owner = AppUser(
+  uid: uid,
+  nama: nama,
+  email: email,
+  role: 'owner',
+  rfidUid: rfidUid,
+  aktif: true,
+  createdAt: DateTime.now(),
+);
+
 
 final ownerMap = owner.toMap();
 ownerMap['no_telepon'] = noTelepon;

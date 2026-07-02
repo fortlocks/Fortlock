@@ -16,6 +16,7 @@ class _SetupOwnerScreenState extends State<SetupOwnerScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _teleponCtrl = TextEditingController();
+  final _rfidCtrl = TextEditingController();
 
   bool _loading = false;
   String? _error;
@@ -33,14 +34,15 @@ class _SetupOwnerScreenState extends State<SetupOwnerScreen> {
       _error = null;
     });
 
-    try {
-      await _authService.setupOwner(
-        nama: _namaCtrl.text.trim(),
-        email: _emailCtrl.text.trim(),
-        password: _passCtrl.text,
-        noTelepon: _teleponCtrl.text.trim(),
-      );
+    try{
 
+await _authService.setupOwner(
+  nama: _namaCtrl.text.trim(),
+  email: _emailCtrl.text.trim(),
+  password: _passCtrl.text,
+  noTelepon: _teleponCtrl.text.trim(),
+  rfidUid: _rfidCtrl.text.trim(),
+);
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -103,11 +105,15 @@ class _SetupOwnerScreenState extends State<SetupOwnerScreen> {
               _buildTextField(_passCtrl, hint: 'Minimal 6 karakter', obscure: true),
               const SizedBox(height: 16),
 
-              _buildLabel('Nomor Telepon'),
-              _buildTextField(_teleponCtrl,
-                  hint: '08xxxxxxxxxx', keyboardType: TextInputType.phone),
-              const SizedBox(height: 24),
+_buildLabel('Nomor Telepon'),
+_buildTextField(_teleponCtrl,
+    hint: '08xxxxxxxxxx', keyboardType: TextInputType.phone),
+const SizedBox(height: 16),
 
+_buildLabel('RFID UID (Opsional)'),
+_buildTextField(_rfidCtrl,
+    hint: 'Tempelkan kartu RFID atau masukkan UID manual'),
+const SizedBox(height: 24),
               if (_error != null)
                 Container(
                   padding: const EdgeInsets.all(12),
