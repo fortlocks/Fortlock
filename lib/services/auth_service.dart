@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../models/app_user.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -93,15 +94,22 @@ class AuthService {
     return AppUser.fromMap(
         firebaseUser.uid, snapshot.value as Map<dynamic, dynamic>);
   }
+Future<AppUser> addUser({
+  required String nama,
+  required String email,
+  required String password,
+  required String role,
+  required String rfidUid,
+}) async {
+  final secondaryApp = await Firebase.initializeApp(
+    name: 'SecondaryApp_${DateTime.now().millisecondsSinceEpoch}',
+    options: Firebase.app().options,
+  );
 
-  Future<AppUser> addUser({
-    required String nama,
-    required String email,
-    required String password,
-    required String role,
-    required String rfidUid,
-  }) async {
-    final credential = await _auth.createUserWithEmailAndPassword(
+  try {
+    final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+
+    final credential = await secondaryAuth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
@@ -118,8 +126,13 @@ class AuthService {
     );
 
     await _usersRef.child(uid).set(newUser.toMap());
+    await secondaryAuth.signOut();
+
     return newUser;
+  } finally {
+    await secondaryApp.delete();
   }
+}
 
   Stream<List<AppUser>> watchUsers() {
     return _usersRef.onValue.map((event) {
