@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+ import 'package:flutter/foundation.dart';
 import '../models/system_status.dart';
 import '../models/access_history.dart';
 import '../models/guest_access.dart';
@@ -69,37 +69,37 @@ class FortlockProvider extends ChangeNotifier {
     mqttService.accessStream.listen(_handleAccessEvent);
     mqttService.alarmStream.listen(_handleAlarmEvent);
 
-    firebaseService.watchSystemStatus().listen((status) {
-      systemStatus = status;
-      notifyListeners();
-    });
+firebaseService.watchSystemStatus().listen((status) {
+  systemStatus = status;
+  notifyListeners();
+}, onError: (e) => _logFirebaseError('system_status', e));
 
-    firebaseService.watchHistory().listen((list) {
-      history = list;
-      notifyListeners();
-    });
+firebaseService.watchHistory().listen((list) {
+  history = list;
+  notifyListeners();
+}, onError: (e) => _logFirebaseError('history', e));
 
-    firebaseService.watchGuestAccess().listen((list) {
-      guestList = list;
-      notifyListeners();
-      _checkExpiredGuests(list);
-    });
+firebaseService.watchGuestAccess().listen((list) {
+  guestList = list;
+  notifyListeners();
+  _checkExpiredGuests(list);
+}, onError: (e) => _logFirebaseError('guest_access', e));
 
-    firebaseService.watchNotifications().listen((list) {
-      notifications = list;
-      notifyListeners();
-    });
+firebaseService.watchNotifications().listen((list) {
+  notifications = list;
+  notifyListeners();
+}, onError: (e) => _logFirebaseError('notifications', e));
 
-    firebaseService.watchPhotoEvidence().listen((list) {
-      evidenceList = list;
-      notifyListeners();
-    });
+firebaseService.watchPhotoEvidence().listen((list) {
+  evidenceList = list;
+  notifyListeners();
+}, onError: (e) => _logFirebaseError('photo_evidence', e));
 
-    authService.watchUsers().listen((list) {
-      userList = list;
-      notifyListeners();
-    });
-  }
+authService.watchUsers().listen((list) {
+  userList = list;
+  notifyListeners();
+}, onError: (e) => _logFirebaseError('users', e)); 
+ }
 
   Future<void> refreshCurrentUser() async {
     currentUser = await authService.getCurrentAppUser();
@@ -159,7 +159,7 @@ class FortlockProvider extends ChangeNotifier {
     }
   }
 
-  void _notifyAndLog(String judul, String pesan, String type) {
+void _notifyAndLog(String judul, String pesan, String type) {
     NotificationService.show(title: judul, body: pesan);
     firebaseService.addNotification(AppNotification(
       id: '',
@@ -170,8 +170,15 @@ class FortlockProvider extends ChangeNotifier {
     ));
   }
 
+  void _logFirebaseError(String source, Object error) {
+    final message = 'Firebase error [$source]: $error';
+    mqttLog.add(message);
+    if (mqttLog.length > 20) mqttLog.removeAt(0);
+    notifyListeners();
+  }
+
   void _handleAccessEvent(Map<String, dynamic> data) {
-    final entry = AccessHistory(
+     final entry = AccessHistory(
       id: '',
       nama: data['nama'] ?? 'Tidak diketahui',
       rfidUid: data['uid'] ?? data['rfid_uid'] ?? data['raw'] ?? '',
