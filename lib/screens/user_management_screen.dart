@@ -4,6 +4,7 @@ import '../theme/app_colors.dart';
 import '../services/fortlock_provider.dart';
 import '../models/app_user.dart';
 import 'add_user_screen.dart';
+import 'edit_user_detail_screen.dart';
 
 class UserManagementScreen extends StatelessWidget {
   const UserManagementScreen({super.key});
@@ -98,17 +99,29 @@ class _UserTile extends StatelessWidget {
     }
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.greyLight),
-      ),
-      child: Row(
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: currentUser.isOwner
+          ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EditUserDetailScreen(user: user),
+                ),
+              );
+            }
+          : null,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.greyLight),
+        ),
+        child: Row(
         children: [
           Container(
             width: 40,
@@ -178,7 +191,8 @@ class _UserTile extends StatelessWidget {
               ],
             ),
         ],
-      ),
+       ), 
+     ),
     );
   }
 }

@@ -157,10 +157,13 @@ Future<AppUser> addUser({
     });
   }
 
-  Future<void> updateUserRole(String uid, String newRole) async {
+Future<void> updateUserRole(String uid, String newRole) async {
     await _usersRef.child(uid).update({'role': newRole});
   }
 
+  Future<void> updateUserRfid(String uid, String rfidUid) async {
+    await _usersRef.child(uid).update({'rfid_uid': rfidUid});
+  }
   Future<void> setUserActive(String uid, bool aktif) async {
     await _usersRef.child(uid).update({'aktif': aktif});
   }
