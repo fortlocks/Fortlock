@@ -11,23 +11,22 @@ class AuthService {
   User? get currentFirebaseUser => _auth.currentUser;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-Future<bool> ownerExists() async {
-  final snapshot = await FirebaseDatabase.instance
-      .ref()
-      .child('system_meta')
-      .child('owner_exists')
-      .get();
-  return snapshot.exists && snapshot.value == true;
-}
+  Future<bool> ownerExists() async {
+    final snapshot = await FirebaseDatabase.instance
+        .ref()
+        .child('system_meta')
+        .child('owner_exists')
+        .get();
+    return snapshot.exists && snapshot.value == true;
+  }
 
-Future<AppUser> setupOwner({
-  required String nama,
-  required String email,
-  required String password,
-  required String noTelepon,
-  String rfidUid = '',
-}) async {
-
+  Future<AppUser> setupOwner({
+    required String nama,
+    required String email,
+    required String password,
+    required String noTelepon,
+    String rfidUid = '',
+  }) async {
     final exists = await ownerExists();
     if (exists) {
       throw Exception('Owner sudah terdaftar. Tidak bisa membuat Owner baru.');
@@ -38,30 +37,29 @@ Future<AppUser> setupOwner({
       password: password,
     );
 
-final uid = credential.user!.uid;
-final owner = AppUser(
-  uid: uid,
-  nama: nama,
-  email: email,
-  role: 'owner',
-  rfidUid: rfidUid,
-  aktif: true,
-  createdAt: DateTime.now(),
-);
+    final uid = credential.user!.uid;
+    final owner = AppUser(
+      uid: uid,
+      nama: nama,
+      email: email,
+      role: 'owner',
+      rfidUid: rfidUid,
+      aktif: true,
+      createdAt: DateTime.now(),
+    );
 
+    final ownerMap = owner.toMap();
+    ownerMap['no_telepon'] = noTelepon;
+    await _usersRef.child(uid).set(ownerMap);
 
-final ownerMap = owner.toMap();
-ownerMap['no_telepon'] = noTelepon;
-await _usersRef.child(uid).set(ownerMap);
+    await FirebaseDatabase.instance
+        .ref()
+        .child('system_meta')
+        .child('owner_exists')
+        .set(true);
 
-await FirebaseDatabase.instance
-    .ref()
-    .child('system_meta')
-    .child('owner_exists')
-    .set(true);
-
-return owner;
-}
+    return owner;
+  }
 
   Future<AppUser> login(String email, String password) async {
     final credential = await _auth.signInWithEmailAndPassword(
@@ -104,45 +102,46 @@ return owner;
     return AppUser.fromMap(
         firebaseUser.uid, snapshot.value as Map<dynamic, dynamic>);
   }
-Future<AppUser> addUser({
-  required String nama,
-  required String email,
-  required String password,
-  required String role,
-  required String rfidUid,
-}) async {
-  final secondaryApp = await Firebase.initializeApp(
-    name: 'SecondaryApp_${DateTime.now().millisecondsSinceEpoch}',
-    options: Firebase.app().options,
-  );
 
-  try {
-    final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
-
-    final credential = await secondaryAuth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
+  Future<AppUser> addUser({
+    required String nama,
+    required String email,
+    required String password,
+    required String role,
+    required String rfidUid,
+  }) async {
+    final secondaryApp = await Firebase.initializeApp(
+      name: 'SecondaryApp_${DateTime.now().millisecondsSinceEpoch}',
+      options: Firebase.app().options,
     );
 
-    final uid = credential.user!.uid;
-    final newUser = AppUser(
-      uid: uid,
-      nama: nama,
-      email: email,
-      role: role,
-      rfidUid: rfidUid,
-      aktif: true,
-      createdAt: DateTime.now(),
-    );
+    try {
+      final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
 
-    await _usersRef.child(uid).set(newUser.toMap());
-    await secondaryAuth.signOut();
+      final credential = await secondaryAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-    return newUser;
-  } finally {
-    await secondaryApp.delete();
+      final uid = credential.user!.uid;
+      final newUser = AppUser(
+        uid: uid,
+        nama: nama,
+        email: email,
+        role: role,
+        rfidUid: rfidUid,
+        aktif: true,
+        createdAt: DateTime.now(),
+      );
+
+      await _usersRef.child(uid).set(newUser.toMap());
+      await secondaryAuth.signOut();
+
+      return newUser;
+    } finally {
+      await secondaryApp.delete();
+    }
   }
-}
 
   Stream<List<AppUser>> watchUsers() {
     return _usersRef.onValue.map((event) {
@@ -157,13 +156,38 @@ Future<AppUser> addUser({
     });
   }
 
-Future<void> updateUserRole(String uid, String newRole) async {
+  Future<void> updateUserRole(String uid, String newRole) async {
     await _usersRef.child(uid).update({'role': newRole});
   }
 
   Future<void> updateUserRfid(String uid, String rfidUid) async {
     await _usersRef.child(uid).update({'rfid_uid': rfidUid});
   }
+
+  Future<bool> isRfidUidTaken(String rfidUid, {String? excludeUid}) async {
+    if (rfidUid.isEmpty) return false;
+
+    final snapshot = await _usersRef.get();
+    if (!snapshot.exists) return false;
+
+    final data = snapshot.value;
+    if (data is! Map) return false;
+
+    for (final entry in data.entries) {
+      final uid = entry.key.toString();
+      if (excludeUid != null && uid == excludeUid) continue;
+
+      final userMap = entry.value as Map<dynamic, dynamic>;
+      final existingRfid = userMap['rfid_uid'] as String?;
+
+      if (existingRfid != null && existingRfid.isNotEmpty && existingRfid == rfidUid) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   Future<void> setUserActive(String uid, bool aktif) async {
     await _usersRef.child(uid).update({'aktif': aktif});
   }

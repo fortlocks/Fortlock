@@ -46,7 +46,20 @@ class _EditUserDetailScreenState extends State<EditUserDetailScreen> {
     });
 
     try {
-      await _authService.updateUserRfid(widget.user.uid, _rfidCtrl.text.trim());
+      final rfid = _rfidCtrl.text.trim();
+
+      if (rfid.isNotEmpty) {
+        final taken = await _authService.isRfidUidTaken(
+          rfid,
+          excludeUid: widget.user.uid,
+        );
+        if (taken) {
+          setState(() => _error = 'RFID UID ini sudah digunakan oleh pengguna lain.');
+          return;
+        }
+      }
+
+      await _authService.updateUserRfid(widget.user.uid, rfid);
       if (!mounted) return;
       setState(() => _successMessage = 'RFID UID berhasil disimpan.');
     } catch (e) {
