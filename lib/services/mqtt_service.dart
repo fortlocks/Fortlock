@@ -16,6 +16,7 @@ class MqttService {
   static const String topicAlarm = 'smart_home/alarm';
   static const String topicAccess = 'smart_home/access';
   static const String topicRegister = 'smart_home/register';
+  static const String topicRegisterResult = 'smart_home/register_result';
 
   MqttServerClient? _client;
 
@@ -24,12 +25,14 @@ class MqttService {
   final _alarmController = StreamController<Map<String, dynamic>>.broadcast();
   final _connectionController = StreamController<bool>.broadcast();
   final _errorController = StreamController<String>.broadcast();
+  final _registerResultController = StreamController<String>.broadcast();
 
   Stream<Map<String, dynamic>> get statusStream => _statusController.stream;
   Stream<Map<String, dynamic>> get accessStream => _accessController.stream;
   Stream<Map<String, dynamic>> get alarmStream => _alarmController.stream;
   Stream<bool> get connectionStream => _connectionController.stream;
   Stream<String> get errorStream => _errorController.stream;
+  Stream<String> get registerResultStream => _registerResultController.stream;
 
   bool get isConnected =>
       _client?.connectionStatus?.state == MqttConnectionState.connected;
@@ -83,6 +86,7 @@ class MqttService {
     _client!.subscribe(topicStatus, MqttQos.atLeastOnce);
     _client!.subscribe(topicAccess, MqttQos.atLeastOnce);
     _client!.subscribe(topicAlarm, MqttQos.atLeastOnce);
+    _client!.subscribe(topicRegisterResult, MqttQos.atLeastOnce);
 
     _client!.updates!.listen((List<MqttReceivedMessage<MqttMessage>> events) {
       final recMess = events[0].payload as MqttPublishMessage;
@@ -96,6 +100,9 @@ class MqttService {
         _accessController.add(_parsePayload(payload));
       } else if (topic == topicAlarm) {
         _alarmController.add(_parsePayload(payload));
+      } else if (topic == topicRegisterResult) {
+        final parsed = _parsePayload(payload);
+        _registerResultController.add(parsed['uid'] ?? parsed['raw'] ?? payload);
       }
     });
   }
@@ -127,7 +134,8 @@ class MqttService {
   void alarmOff() => publish(topicControl, 'ALARM_OFF');
   void triggerPanic() => publish(topicControl, 'PANIC');
 
-  void registerRfid(String rfidUid) => publish(topicRegister, rfidUid);
+  void startScanMode() => publish(topicRegister, 'SCAN_START');
+  void stopScanMode() => publish(topicRegister, 'SCAN_STOP');
 
   void disconnect() => _client?.disconnect();
 
@@ -137,6 +145,7 @@ class MqttService {
     _alarmController.close();
     _connectionController.close();
     _errorController.close();
+    _registerResultController.close();
     _client?.disconnect();
   }
 }

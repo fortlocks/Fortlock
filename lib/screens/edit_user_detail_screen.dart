@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
+import '../services/fortlock_provider.dart';
 
 class EditUserDetailScreen extends StatefulWidget {
   final AppUser user;
@@ -16,6 +19,8 @@ class _EditUserDetailScreenState extends State<EditUserDetailScreen> {
   final _authService = AuthService();
   late final TextEditingController _rfidCtrl;
 
+  StreamSubscription<String>? _scanSub;
+  bool _scanning = false;
   bool _loading = false;
   String? _error;
   String? _successMessage;
@@ -28,6 +33,7 @@ class _EditUserDetailScreenState extends State<EditUserDetailScreen> {
 
   @override
   void dispose() {
+    _scanSub?.cancel();
     _rfidCtrl.dispose();
     super.dispose();
   }
@@ -48,6 +54,41 @@ class _EditUserDetailScreenState extends State<EditUserDetailScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _startScan() {
+    final mqttService = context.read<FortlockProvider>().mqttService;
+
+    setState(() {
+      _scanning = true;
+      _error = null;
+      _successMessage = null;
+    });
+    mqttService.startScanMode();
+
+    _scanSub = mqttService.registerResultStream.listen((uid) {
+      _rfidCtrl.text = uid;
+      _stopScan();
+      if (mounted) {
+        setState(() => _successMessage = 'UID terdeteksi: $uid');
+      }
+    });
+
+    Future.delayed(const Duration(seconds: 20), () {
+      if (_scanning) {
+        _stopScan();
+        if (mounted) {
+          setState(() => _error = 'Tidak ada kartu terdeteksi. Coba lagi.');
+        }
+      }
+    });
+  }
+
+  void _stopScan() {
+    context.read<FortlockProvider>().mqttService.stopScanMode();
+    _scanSub?.cancel();
+    _scanSub = null;
+    if (mounted) setState(() => _scanning = false);
   }
 
   Widget _infoRow(String label, String value) {
@@ -91,29 +132,64 @@ class _EditUserDetailScreenState extends State<EditUserDetailScreen> {
                   style: TextStyle(
                       color: AppColors.greyDark, fontSize: 12, fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),
-              TextField(
-                controller: _rfidCtrl,
-                style: const TextStyle(color: AppColors.darkBlue),
-                decoration: InputDecoration(
-                  hintText: 'Tempelkan kartu RFID atau masukkan UID manual',
-                  filled: true,
-                  fillColor: AppColors.white,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: AppColors.greyLight),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _rfidCtrl,
+                      style: const TextStyle(color: AppColors.darkBlue),
+                      decoration: InputDecoration(
+                        hintText: 'Tempelkan kartu RFID atau masukkan UID manual',
+                        filled: true,
+                        fillColor: AppColors.white,
+                        contentPadding:
+                            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: AppColors.greyLight),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: AppColors.greyLight),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+                        ),
+                      ),
+                    ),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: AppColors.greyLight),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _scanning ? _stopScan : _startScan,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            _scanning ? AppColors.danger : AppColors.primaryBlue,
+                        foregroundColor: AppColors.white,
+                      ),
+                      child: _scanning
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  color: AppColors.white, strokeWidth: 2))
+                          : const Icon(Icons.nfc),
+                    ),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+                ],
+              ),
+              if (_scanning)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Menunggu kartu ditempelkan ke reader...',
+                    style: TextStyle(color: AppColors.primaryBlue, fontSize: 11),
                   ),
                 ),
-              ),
               const SizedBox(height: 20),
 
               if (_error != null)
