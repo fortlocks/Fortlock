@@ -27,8 +27,9 @@ class FortlockProvider extends ChangeNotifier {
 
   AppUser? currentUser;
 
-  String? _lastAlarmState;
-  String? _lastModeState;
+String? _lastAlarmState;
+String? _lastModeState;
+String? _lastPintuState;
   final Map<String, DateTime> _lastNotifTime = {};
 
   bool _canNotify(String key, {int cooldownSeconds = 30}) {
@@ -152,13 +153,20 @@ authService.watchUsers().listen((list) {
     }
     _lastModeState = updates['mode'] ?? _lastModeState;
 
-    if (updates['pintu'] == 'open' && _canNotify('pintu_open')) {
-      _notifyAndLog('Pintu Dibuka', 'Pintu baru saja dibuka.', 'info');
+          _notifyAndLog('Pintu Dibuka', 'Pintu baru saja dibuka.', 'info');
     } else if (updates['pintu'] == 'closed' && _canNotify('pintu_closed')) {
       _notifyAndLog('Pintu Ditutup', 'Pintu baru saja ditutup.', 'info');
     }
   }
-
+      _notifyAndLog('Pintu Dibuka', 'Pintu baru 
+      saja dibuka.', 'info');
+if (updates['pintu'] == 'open' && _lastPintuState != 'open' && _canNotify('pintu_open')) {
+      _notifyAndLog('Pintu Dibuka', 'Pintu baru saja dibuka.', 'info');
+    } else if (updates['pintu'] == 'closed' && _lastPintuState != 'closed' && _canNotify('pintu_closed')) {
+      _notifyAndLog('Pintu Ditutup', 'Pintu baru saja ditutup.', 'info');
+    }
+    _lastPintuState = updates['pintu'] ?? _lastPintuState;
+  }
 void _notifyAndLog(String judul, String pesan, String type) {
     NotificationService.show(title: judul, body: pesan);
     firebaseService.addNotification(AppNotification(
