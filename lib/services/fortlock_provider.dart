@@ -1,4 +1,4 @@
- import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import '../models/system_status.dart';
 import '../models/access_history.dart';
 import '../models/guest_access.dart';
@@ -27,9 +27,9 @@ class FortlockProvider extends ChangeNotifier {
 
   AppUser? currentUser;
 
-String? _lastAlarmState;
-String? _lastModeState;
-String? _lastPintuState;
+  String? _lastAlarmState;
+  String? _lastModeState;
+  String? _lastPintuState;
   final Map<String, DateTime> _lastNotifTime = {};
 
   bool _canNotify(String key, {int cooldownSeconds = 30}) {
@@ -70,37 +70,37 @@ String? _lastPintuState;
     mqttService.accessStream.listen(_handleAccessEvent);
     mqttService.alarmStream.listen(_handleAlarmEvent);
 
-firebaseService.watchSystemStatus().listen((status) {
-  systemStatus = status;
-  notifyListeners();
-}, onError: (e) => _logFirebaseError('system_status', e));
+    firebaseService.watchSystemStatus().listen((status) {
+      systemStatus = status;
+      notifyListeners();
+    }, onError: (e) => _logFirebaseError('system_status', e));
 
-firebaseService.watchHistory().listen((list) {
-  history = list;
-  notifyListeners();
-}, onError: (e) => _logFirebaseError('history', e));
+    firebaseService.watchHistory().listen((list) {
+      history = list;
+      notifyListeners();
+    }, onError: (e) => _logFirebaseError('history', e));
 
-firebaseService.watchGuestAccess().listen((list) {
-  guestList = list;
-  notifyListeners();
-  _checkExpiredGuests(list);
-}, onError: (e) => _logFirebaseError('guest_access', e));
+    firebaseService.watchGuestAccess().listen((list) {
+      guestList = list;
+      notifyListeners();
+      _checkExpiredGuests(list);
+    }, onError: (e) => _logFirebaseError('guest_access', e));
 
-firebaseService.watchNotifications().listen((list) {
-  notifications = list;
-  notifyListeners();
-}, onError: (e) => _logFirebaseError('notifications', e));
+    firebaseService.watchNotifications().listen((list) {
+      notifications = list;
+      notifyListeners();
+    }, onError: (e) => _logFirebaseError('notifications', e));
 
-firebaseService.watchPhotoEvidence().listen((list) {
-  evidenceList = list;
-  notifyListeners();
-}, onError: (e) => _logFirebaseError('photo_evidence', e));
+    firebaseService.watchPhotoEvidence().listen((list) {
+      evidenceList = list;
+      notifyListeners();
+    }, onError: (e) => _logFirebaseError('photo_evidence', e));
 
-authService.watchUsers().listen((list) {
-  userList = list;
-  notifyListeners();
-}, onError: (e) => _logFirebaseError('users', e)); 
- }
+    authService.watchUsers().listen((list) {
+      userList = list;
+      notifyListeners();
+    }, onError: (e) => _logFirebaseError('users', e));
+  }
 
   Future<void> refreshCurrentUser() async {
     currentUser = await authService.getCurrentAppUser();
@@ -153,21 +153,15 @@ authService.watchUsers().listen((list) {
     }
     _lastModeState = updates['mode'] ?? _lastModeState;
 
-          _notifyAndLog('Pintu Dibuka', 'Pintu baru saja dibuka.', 'info');
-    } else if (updates['pintu'] == 'closed' && _canNotify('pintu_closed')) {
-      _notifyAndLog('Pintu Ditutup', 'Pintu baru saja ditutup.', 'info');
-    }
-  }
-      _notifyAndLog('Pintu Dibuka', 'Pintu baru 
-      saja dibuka.', 'info');
-if (updates['pintu'] == 'open' && _lastPintuState != 'open' && _canNotify('pintu_open')) {
+    if (updates['pintu'] == 'open' && _lastPintuState != 'open' && _canNotify('pintu_open')) {
       _notifyAndLog('Pintu Dibuka', 'Pintu baru saja dibuka.', 'info');
     } else if (updates['pintu'] == 'closed' && _lastPintuState != 'closed' && _canNotify('pintu_closed')) {
       _notifyAndLog('Pintu Ditutup', 'Pintu baru saja ditutup.', 'info');
     }
     _lastPintuState = updates['pintu'] ?? _lastPintuState;
   }
-void _notifyAndLog(String judul, String pesan, String type) {
+
+  void _notifyAndLog(String judul, String pesan, String type) {
     NotificationService.show(title: judul, body: pesan);
     firebaseService.addNotification(AppNotification(
       id: '',
@@ -186,7 +180,7 @@ void _notifyAndLog(String judul, String pesan, String type) {
   }
 
   void _handleAccessEvent(Map<String, dynamic> data) {
-     final entry = AccessHistory(
+    final entry = AccessHistory(
       id: '',
       nama: data['nama'] ?? 'Tidak diketahui',
       rfidUid: data['uid'] ?? data['rfid_uid'] ?? data['raw'] ?? '',
