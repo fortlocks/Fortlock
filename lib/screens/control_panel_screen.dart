@@ -123,6 +123,26 @@ class ControlPanelScreen extends StatelessWidget {
               ),
             ),
 
+            if (status.isPanicMode) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: canControl ? provider.panicOff : null,
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: const Text('Matikan Panic Mode',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.safe,
+                    foregroundColor: AppColors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
+
             const SizedBox(height: 24),
             Text(
               'Status saat ini: Kunci ${status.isLocked ? "terkunci" : "terbuka"}, '

@@ -218,6 +218,11 @@ class FortlockProvider extends ChangeNotifier {
     }
   }
 
+  void panicOff() {
+    mqttService.panicOff();
+    _notifyAndLog('Panic Mode Nonaktif', 'Panic Mode telah dimatikan. Sistem kembali normal.', 'info');
+  }
+
   Future<void> addGuest(GuestAccess guest) async {
     await firebaseService.addGuestAccess(guest);
   }

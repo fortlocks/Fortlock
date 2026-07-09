@@ -133,6 +133,8 @@ class MqttService {
   void alarmOn() => publish(topicControl, 'ALARM_ON');
   void alarmOff() => publish(topicControl, 'ALARM_OFF');
   void triggerPanic() => publish(topicControl, 'PANIC');
+void triggerPanic() => publish(topicControl, 'PANIC');
+void panicOff() => publish(topicControl, 'PANIC_OFF');
 
   void startScanMode() => publish(topicRegister, 'SCAN_START');
   void stopScanMode() => publish(topicRegister, 'SCAN_STOP');
